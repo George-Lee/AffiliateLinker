@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "affiliatelinker"
+version = "0.1.0"
+description = ""
+authors = ["Telltak"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+PyNaCl = "^1.4.0"
+requests = "^2.25.1"
+requests-auth-aws-sigv4 = "^0.7"
+
+[tool.poetry.dev-dependencies]
+black = "^21.5b2"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

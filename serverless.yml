@@ -1,0 +1,43 @@
+service: affiliatelinker
+frameworkVersion: '2'
+
+provider:
+  name: aws
+  runtime: python3.8
+
+  stage: ${self:custom.stage}
+  region: eu-west-1
+
+functions:
+  web:
+    handler: affiliatelinker.web.handler
+    events:
+      - http:
+          method: any
+          path: /
+      - http:
+          method: any
+          path: /{proxy+}
+    environment:
+      DISCORD_APP_PUBLIC_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/DiscordAppPublicKey~true}
+      PAAPI_ACCESS_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiAccessKey~true}
+      PAAPI_SECRET_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiSecretKey~true}
+      PAAPI_PARTNER_TAG: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiPartnerTag~true}
+      PAAPI_REGION: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiRegion~true}
+
+resources:
+ Resources:
+   WebLogGroup:
+     Type: AWS::Logs::LogGroup
+     Properties:
+       RetentionInDays: 3
+
+package:
+  exclude:
+    - "node_modules/**"
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  stage: ${opt:stage, "dev"}
