@@ -9,6 +9,7 @@ python = "^3.8"
 PyNaCl = "^1.4.0"
 requests = "^2.25.1"
 requests-auth-aws-sigv4 = "^0.7"
+tldextract = "^3.1.0"
 
 [tool.poetry.dev-dependencies]
 black = "^21.5b2"

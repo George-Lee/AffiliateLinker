@@ -23,7 +23,6 @@ functions:
       PAAPI_ACCESS_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiAccessKey~true}
       PAAPI_SECRET_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiSecretKey~true}
       PAAPI_PARTNER_TAG: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiPartnerTag~true}
-      PAAPI_REGION: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiRegion~true}
 
 resources:
  Resources:

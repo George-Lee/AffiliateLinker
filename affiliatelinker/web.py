@@ -10,6 +10,7 @@ import requests
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey
 from requests_auth_aws_sigv4 import AWSSigV4
+import tldextract
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -18,7 +19,6 @@ DISCORD_APP_PUBLIC_KEY = os.getenv("DISCORD_APP_PUBLIC_KEY")
 PAAPI_ACCESS_KEY = os.getenv("PAAPI_ACCESS_KEY")
 PAAPI_SECRET_KEY = os.getenv("PAAPI_SECRET_KEY")
 PAAPI_PARTNER_TAG = os.getenv("PAAPI_PARTNER_TAG")
-PAAPI_REGION = os.getenv("PAAPI_REGION")
 
 logger.debug(PAAPI_PARTNER_TAG)
 logger.debug(DISCORD_APP_PUBLIC_KEY)
@@ -32,6 +32,28 @@ INTERACTION_APPLICATION_COMMAND_CALLBACK_FLAG_EPHEMERAL = 64
 
 verify_key = VerifyKey(bytes.fromhex(DISCORD_APP_PUBLIC_KEY))
 logger.debug(verify_key)
+
+PAAPI_REGION_MAPS = {
+    "com.au": {"paapi_url": "webservices.amazon.com.au", "region": "us-west-2"},
+    "com.br": {"paapi_url": "webservices.amazon.com.br", "region": "us-east-1"},
+    "ca": {"paapi_url": "webservices.amazon.ca", "region": "us-east-1", "partner_tag": "00-20"},
+    "fr": {"paapi_url": "webservices.amazon.fr", "region": "eu-west-1", "partner_tag": "069-21"},
+    "de": {"paapi_url": "webservices.amazon.de", "region": "eu-west-1", "partner_tag": "07-21"},
+    "in": {"paapi_url": "webservices.amazon.in", "region": "eu-west-1"},
+    "it": {"paapi_url": "webservices.amazon.it", "region": "eu-west-1", "partner_tag": "05-21"},
+    "co.jb": {"paapi_url": "webservices.amazon.co.jb", "region": "us-west-2"},
+    "com.mx": {"paapi_url": "webservices.amazon.com.mx", "region": "us-east-1"},
+    "nl": {"paapi_url": "webservices.amazon.nl", "region": "eu-west-1"},
+    "pl": {"paapi_url": "webservices.amazon.pl", "region": "eu-west-1"},
+    "sg": {"paapi_url": "webservices.amazon.sg", "region": "us-west-2"},
+    "sa": {"paapi_url": "webservices.amazon.sa", "region": "eu-west-1"},
+    "es": {"paapi_url": "webservices.amazon.es", "region": "eu-west-1", "partner_tag": "06-21"},
+    "se": {"paapi_url": "webservices.amazon.se", "region": "eu-west-1"},
+    "com.tr": {"paapi_url": "webservices.amazon.com.tr", "region": "eu-west-1"},
+    "ae": {"paapi_url": "webservices.amazon.ae", "region": "eu-west-1"},
+    "co.uk": {"paapi_url": "webservices.amazon.co.uk", "region": "eu-west-1", "partner_tag": "09-21"},
+    "com": {"paapi_url": "webservices.amazon.com", "region": "us-east-1", "partner_tag": "-20"},
+} # any region without a partner tag, I just ... don't know them. PRs accepted to improve
 
 
 def jsonify(body, status_code=200, headers=None):
@@ -100,15 +122,38 @@ def handler(event, context):
             logger.debug(asin)
             asin_pattern = "([A-Z0-9]{10})"
 
-            if asinl := re.findall(asin_pattern, asin):
-                asin = asinl[0]
+            if asin_value := re.findall(asin_pattern, asin):
+                asin_ness = asin_value[0]
             else:
                 logger.debug(repr(asin))
                 return jsonify(
                     {
                         "type": INTERACTION_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
                         "data": {
-                            "content": "Invalid options.",
+                            "content": f"Invalid options. {asin} is not valid",
+                            "flags": INTERACTION_APPLICATION_COMMAND_CALLBACK_FLAG_EPHEMERAL,
+                        },
+                    }
+                )
+
+            if suffix := tldextract.extract(asin).suffix:
+                logger.debug(suffix)
+                pass
+            elif "region" in options:
+                suffix = options.get("region")
+                logger.debug(suffix)
+            else:
+                suffix = "co.uk"
+                logger.debug(suffix)
+            logger.debug(f"final suffix: {suffix}")
+
+            paapi_data = PAAPI_REGION_MAPS[suffix]
+            if not paapi_data.get("partner_tag"):
+                return jsonify(
+                    {
+                        "type": INTERACTION_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
+                        "data": {
+                            "content": "This region is currently not supported. Contact your local nerd to fix this",
                             "flags": INTERACTION_APPLICATION_COMMAND_CALLBACK_FLAG_EPHEMERAL,
                         },
                     }
@@ -127,7 +172,7 @@ def handler(event, context):
 
             aws_auth = AWSSigV4(
                 "ProductAdvertisingAPI",
-                region=PAAPI_REGION,
+                region=paapi_data["region"],
                 aws_access_key_id=PAAPI_ACCESS_KEY,
                 aws_secret_access_key=PAAPI_SECRET_KEY,
             )
@@ -138,12 +183,12 @@ def handler(event, context):
             }
 
             request_data = {
-                "ItemIds": [asin],
-                "PartnerTag": PAAPI_PARTNER_TAG,
+                "ItemIds": [asin_ness],
+                "PartnerTag": f"{PAAPI_PARTNER_TAG}{paapi_data.get('partner_tag')}",
                 "PartnerType": "Associates",
             }
             r = requests.post(
-                "https://webservices.amazon.co.uk/paapi5/getitems",
+                f"https://{paapi_data['paapi_url']}/paapi5/getitems",
                 data=json.dumps(request_data),
                 auth=aws_auth,
                 headers=headers,
@@ -155,7 +200,7 @@ def handler(event, context):
                 {
                     "type": INTERACTION_RESPONSE_TYPE_CHANNEL_MESSAGE_WITH_SOURCE,
                     "data": {
-                        "content": f"Affiliate link for {options.get('item')}:\n{referral_link}",
+                        "content": f"Affiliate link for {asin_ness}:\n{referral_link}",
                     },
                 }
             )
