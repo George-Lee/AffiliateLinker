@@ -120,7 +120,7 @@ def handler(event, context):
 
             asin = options.get("item", "Not-an-asin").strip()
             logger.debug(asin)
-            asin_pattern = "([A-Z0-9]{10})"
+            asin_pattern = "(?:[/dp/]|$)([A-Z0-9]{10})"
 
             if asin_value := re.findall(asin_pattern, asin):
                 asin_ness = asin_value[0]
