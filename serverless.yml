@@ -1,5 +1,5 @@
 service: affiliatelinker
-frameworkVersion: '2'
+frameworkVersion: '3'
 
 provider:
   name: aws
@@ -18,11 +18,12 @@ functions:
       - http:
           method: any
           path: /{proxy+}
+    url: true
     environment:
-      DISCORD_APP_PUBLIC_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/DiscordAppPublicKey~true}
-      PAAPI_ACCESS_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiAccessKey~true}
-      PAAPI_SECRET_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiSecretKey~true}
-      PAAPI_PARTNER_TAG: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiPartnerTag~true}
+      DISCORD_APP_PUBLIC_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/DiscordAppPublicKey}
+      PAAPI_ACCESS_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiAccessKey}
+      PAAPI_SECRET_KEY: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiSecretKey}
+      PAAPI_PARTNER_TAG: ${ssm:/AffiliateLinker/${self:custom.stage}/PaapiPartnerTag}
 
 resources:
  Resources:
@@ -37,6 +38,5 @@ package:
 
 plugins:
   - serverless-python-requirements
-
 custom:
   stage: ${opt:stage, "dev"}

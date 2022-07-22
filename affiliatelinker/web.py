@@ -98,7 +98,7 @@ def handler(event, context):
 
     body = json.loads(event["body"])
 
-    if event["path"] == "/" and event["httpMethod"] == "POST":
+    if event["requestContext"]["http"]["path"] == "/" and event["requestContext"]["http"]["method"] == "POST":
         if body["type"] == INTERACTION_TYPE_PING:
             return jsonify({"type": INTERACTION_RESPONSE_TYPE_PONG})
 
